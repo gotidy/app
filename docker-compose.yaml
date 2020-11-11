@@ -1,0 +1,19 @@
+version: "3"
+networks:
+  internal:
+
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: build.Dockerfile
+    container_name: app
+    networks:
+      - internal
+    # depends_on:
+      # - somecontainer
+    # environment:
+      # - SOME_ENV=SOME_VALUE
+    ports:
+      - 8080:8080
+    # command: somecommand --flag1 --flag2

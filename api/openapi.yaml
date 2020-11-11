@@ -1,0 +1,603 @@
+openapi: '3.0.2'
+info:
+  title: API
+  version: '0.1'
+  description: Description
+servers:
+  - url: https://api.server.test/v1
+
+components:
+  securitySchemes:
+    BearerAuth:            
+      type: http
+      scheme: bearer
+      bearerFormat: JWT    # optional, arbitrary value for documentation purposes
+
+  schemas:
+    Slice:
+      description: Collection slice
+      type: object
+      properties:
+        count:
+          description: Total count of items in collection 
+          type: integer
+        offset:
+          type: integer
+      required:
+        - count    
+
+    Error: 
+      description: An object for describing a single error that occurred during the processing of a request.
+      properties:
+        field:
+          description: The field in the request that caused this error. This may be a path, separated by periods in the case of nested fields. In some cases this may come back as "null" if the error is not specific to any single element of the request.
+          example: fieldname
+          type: string
+        reason:
+          description: What happened to cause this error. In most cases, this can be fixed immediately by changing the data you sent in the request, but in some cases you will be instructed to [open a Support Ticket](/api/v4/support-tickets/#post) or perform some other action before you can complete the request successfully.
+          example: fieldname must be a valid value
+          type: string
+      type: object
+    
+    Errors:
+      description: An object for describing a multiple errors that occurred during the processing of a request.
+      properties:
+        errors:
+          items:
+            $ref: '#/components/schemas/Error'
+          type: array
+      type: object
+      required:
+        - items
+
+    # Login:
+    #   description: Collection slice
+    #   type: object
+    #   properties:
+    #     user:
+    #       type: string
+    #     password:
+    #       type: string
+    #   required:
+    #     - user
+    #     - password
+
+    Healthcheck:
+      description: Basic response data 
+      type: object
+      properties:
+        version:
+          type: string
+          description: Version of service
+          example: "1.0.0"
+      required:
+        - version
+
+    User:
+      description: User information
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+          format: email
+        birthday:
+          type: string
+          format: date
+      required:
+        - firstName
+        - email
+        
+  responses:
+    Healthcheck200: 
+      description: Health check response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Healthcheck"
+            
+    Users200: 
+      description: Users response
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/Slice"
+              - type: object
+                properties:
+                  data: 
+                    type: array
+                    items: 
+                      $ref: "#/components/schemas/User"
+            
+    User200: 
+      description: User response
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/User"
+            
+    ErrorResponse:
+      description: Error  
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+
+    UnauthorizedError:
+      description: Access token is missing or invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Errors"
+
+  parameters:
+    id:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    offset:  
+      in: query
+      name: offset
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+      description: The number of items to skip before starting to collect the result set.
+
+    limit:
+      in: query
+      name: limit
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+      description: The numbers of items to return.
+
+security:
+  - BearerAuth: []
+
+paths:
+  /healthcheck:
+    get:
+      summary: Health Check
+      description: >-
+        The healthcheck endpoint provides detailed information about the health
+        of a web service. If each of the components required by the service are
+        healthy, then the service is considered healthy and will return a 200 OK
+        response. If any of the components needed by the service are unhealthy,
+        then a 503 Service Unavailable response will be provided.
+      operationId: "HealthCheck"
+      responses:
+        '200':
+          description: OK
+        default:
+          $ref: "#/components/responses/ErrorResponse"  
+
+  # /auth:
+  #   post:
+  #     summary: Authentification
+  #     description: Authentification
+  #     operationId: auth
+  #     security: [] 
+  #     requestBody:
+  #       content:
+  #         application/json:
+  #           schema:
+  #             $ref: "#/components/schemas/Auth"
+  #     responses:
+  #       '200': 
+  #         description: OK
+  #         content:
+  #           application/json:
+  #             schema:
+  #               properties:
+  #                 token:
+  #                   type: string
+  #       '401': 
+  #         $ref: "#/components/responses/UnauthorizedError"  
+  #       '429':
+  #         description: Too Many Requests
+  #         $ref: "#/components/responses/ErrorResponse"  
+
+  /auth/register:
+    post:
+      tags:
+        - Auth
+      summary: 'Creates a new user account.'
+      description: '
+        Provided email address must be unique. After successful registration a confirmation email must be sent to provided address. Confirmation email must contain confirmation link with key that will be used in API call to initiate account.
+      '
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+      responses:
+        201:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: '826bc24f-7446-4ec5-a21c-67ca4eb104de'
+                    description: 'Id'
+                  message:
+                    type: string
+                    example: ''
+                    description: 'Message'
+                  token:
+                    type: string
+                    example: '1mx6L2L7AMdEsyKy5LW9s8gt6mBxdICwosVn5sjhbwykOoQJFUru6752dwsj2THN'
+                    description: 'Token'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'User already registered'
+                    description: 'Error'
+  /auth/user-confirm:
+    post:
+      tags:
+        - Auth
+      summary: 'Activate user account.'
+      description: '
+        Marks user account as activated.
+      '
+      parameters:
+        - in: header
+          name: Content-Type
+          required: true
+          schema:
+            type: string
+            example: 'application/json'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - key
+              properties:
+                key:
+                  type: string
+                  example: 'MjhjZjQwMDZlZGQyNWQ2ZmI1NTczYTQzNzhkZTE3ODQ='
+                  description: 'Key'
+      responses:
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: '1mx6L2L7AMdEsyKy5LW9s8gt6mBxdICwosVn5sjhbwykOoQJFUru6752dwsj2THN'
+                    description: 'Token'
+        409:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Conflict'
+                    description: 'Error'
+  /auth/resend-verification-email:
+    post:
+      tags:
+        - Auth
+      summary: 'Resend verification email to currently logged in user.'
+      parameters:
+        - in: header
+          name: Content-Type
+          required: true
+          schema:
+            type: string
+            example: 'application/json'
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: 'Bearer sYFuat5lz1y5v0LrCt7LfqJpo1AkdLgm7LbY6eRibN4NYw9Srf6aMIRJM8KbTwM6'
+      responses:
+        204:
+          description: ''
+  /auth/login:
+    post:
+      tags:
+        - Auth
+      summary: 'Login and retrieve an user token.'
+      parameters:
+        - in: header
+          name: Content-Type
+          required: true
+          schema:
+            type: string
+            example: 'application/json'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - email
+              - password
+              properties:
+                email:
+                  type: string
+                  example: 'phpunit+9ee681febc292e5df687843b6b26848dac2b51bd@coinfirm.com'
+                  description: 'Email'
+                password:
+                  type: string
+                  example: '124K8t9iHn!'
+                  description: 'Password'
+      responses:
+        400:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'Invalid email or password'
+                    description: 'Error'
+        200:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+                    example: '1mx6L2L7AMdEsyKy5LW9s8gt6mBxdICwosVn5sjhbwykOoQJFUru6752dwsj2THN'
+                    description: 'Token'
+  /auth/email-change:
+    post:
+      tags:
+        - Auth
+      summary: 'Initiate user email address change.'
+      description: '
+        API records user intent for changing email address. User must receive email  for with link to new email address. A one-time unique token that authenticates email change  for this user must be added to confirmation link. User need to have authorisation token  and email need to be connected with this token.
+        
+        
+        **Access roles:** confirmed
+      '
+      parameters:
+        - in: header
+          name: Content-Type
+          required: true
+          schema:
+            type: string
+            example: 'application/json'
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: 'Bearer sYFuat5lz1y5v0LrCt7LfqJpo1AkdLgm7LbY6eRibN4NYw9Srf6aMIRJM8KbTwM6'
+      responses:
+        200:
+          description: ''
+        403:
+          description: ''
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: 'User roles access forbidden.'
+                    description: 'Error'
+  /auth/email-change-confirm:
+    post:
+      tags:
+        - Auth
+      summary: 'Confirm user email address change.'
+      description: '
+        Value of email is replaced only after user confirms ownership of provided earlier  email address (request must contain key sent in email change confirmation link).
+      '
+      parameters:
+        - in: header
+          name: Content-Type
+          required: true
+          schema:
+            type: string
+            example: 'application/json'
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: 'Bearer sYFuat5lz1y5v0LrCt7LfqJpo1AkdLgm7LbY6eRibN4NYw9Srf6aMIRJM8KbTwM6'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - email
+              - key
+              properties:
+                email:
+                  type: string
+                  example: 'phpunit+54171e1e0da0c986fd64e6b8daf72638ce637e3b@coinfirm.com'
+                  description: 'Email'
+                key:
+                  type: string
+                  example: 'KPOZuFFMkghOuFy67AuBwYm4mGzfocrQEvuPGbboXh038VuvXq5GzlPievDYdrnK'
+                  description: 'Key'
+      responses:
+        204:
+          description: ''
+  /auth/password-reset:
+    post:
+      tags:
+        - Auth
+      summary: 'Initiate user password reset.'
+      description: '
+        User must receive an e-mail with confirmation link. A one-time unique token  that authenticates password change for this user must be added to confirmation link. If there  is no user registered for provided e-mail address, API must not send the password reset e-mail  but respond with 204.
+      '
+      parameters:
+        - in: header
+          name: Content-Type
+          required: true
+          schema:
+            type: string
+            example: 'application/json'
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: 'Bearer sYFuat5lz1y5v0LrCt7LfqJpo1AkdLgm7LbY6eRibN4NYw9Srf6aMIRJM8KbTwM6'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - email
+              properties:
+                email:
+                  type: string
+                  example: 'phpunit+54171e1e0da0c986fd64e6b8daf72638ce637e3b@coinfirm.com'
+                  description: 'Email'
+      responses:
+        200:
+          description: ''
+  /auth/password-reset-confirm:
+    post:
+      tags:
+        - Auth
+      summary: 'Confirm user password reset.'
+      description: '
+        After user confirms password reset action and clicks  link sent in email.
+      '
+      parameters:
+        - in: header
+          name: Content-Type
+          required: true
+          schema:
+            type: string
+            example: 'application/json'
+        - in: header
+          name: Authorization
+          required: true
+          schema:
+            type: string
+            example: 'Bearer sYFuat5lz1y5v0LrCt7LfqJpo1AkdLgm7LbY6eRibN4NYw9Srf6aMIRJM8KbTwM6'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - password
+              - key
+              properties:
+                password:
+                  type: string
+                  example: '124K8t9iHn!'
+                  description: 'Password'
+                key:
+                  type: string
+                  example: 'PqBzVJtEytXha1ddOQoRkt0ntUZSAZ01moMWDFl4mhf7QZtGPZiD8uFCGYzHFqbj'
+                  description: 'Key'
+      responses:
+        204:
+          description: ''
+
+  /users:
+    get:
+      summary: Get users
+      description: List of users
+      operationId: GetUsers
+      parameters:
+        - $ref: "#/components/parameters/limit"
+        - $ref: "#/components/parameters/offset"
+      responses:
+        '200': 
+          $ref: "#/components/responses/User200"
+        '401':
+          $ref: "#/components/responses/UnauthorizedError"  
+        default:
+          $ref: "#/components/responses/ErrorResponse"  
+    post:
+      summary: Adds a new User
+      description: Adds a new User
+      operationId: CreateUser
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+      responses:
+        '200': 
+          $ref: "#/components/responses/User200"
+        '401':
+          $ref: "#/components/responses/UnauthorizedError"  
+        default:
+          $ref: "#/components/responses/ErrorResponse"  
+
+  /users/{id}:
+    get:
+      summary: Single user 
+      description: Returns a single user information
+      operationId: GetUser
+      parameters:
+        - $ref: "#/components/parameters/id"
+      responses:
+        '200': 
+          $ref: "#/components/responses/Users200"
+        '401':
+          $ref: "#/components/responses/UnauthorizedError"  
+        default:
+          $ref: "#/components/responses/ErrorResponse"  
+    put:
+      summary: Update a user information
+      description: Update information about a user.
+      operationId: UpdateUser
+      parameters:
+        - $ref: "#/components/parameters/id"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+      responses:
+        '200': 
+          $ref: "#/components/responses/User200"
+        '401':
+          $ref: "#/components/responses/UnauthorizedError"  
+        default:
+          $ref: "#/components/responses/ErrorResponse"  
+
