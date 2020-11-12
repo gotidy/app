@@ -6,5 +6,11 @@ import (
 )
 
 func main() {
-	cli.Run(NewCli(), context.NewContext(), cli.Name(ApplicationName), cli.Version(Version))
+	cli.Run(
+		NewCli(),
+		context.NewContext(),
+		cli.Name(ApplicationName),
+		cli.Version(Version),
+		cli.Env("APP"),
+	)
 }

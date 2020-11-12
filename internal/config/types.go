@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-// NetAddress
+// NetAddress.
 type NetAddress struct {
 	Host string
 	Port int
@@ -47,10 +47,11 @@ func (u UserCredential) String() string {
 	return url.User(u.User).String()
 }
 
-// Connection's address and user credential
+// Connection's address and user credential.
 type Connection struct {
-	User    UserCredential
+	Scheme  string
 	Address NetAddress
+	User    UserCredential
 }
 
 // String combines user and address into the form "user:password@host:port".
@@ -63,6 +64,10 @@ func (c Connection) String() string {
 }
 
 // String combines scheme, user and address into the form "user:password@host:port".
-func (c Connection) URL(scheme string) string {
+func (c Connection) URL() string {
+	scheme := "http"
+	if c.Scheme != "" {
+		scheme = c.Scheme
+	}
 	return scheme + "://" + c.String() + "/"
 }

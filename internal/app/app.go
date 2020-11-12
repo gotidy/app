@@ -17,8 +17,10 @@ type Config struct {
 // 	return &App{config: conf}
 // }
 
-func Run(ctx *context.Context, conf *Config) {
-	defer ctx.WaitGroup.Done()
+func Run(ctx *context.Context, conf *Config) error {
+	// defer ctx.WaitGroup.Done()
 
 	// Some code
+
+	return nil
 }

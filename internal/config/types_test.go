@@ -11,6 +11,7 @@ func TestConnection_StringURL(t *testing.T) {
 	}{
 		{
 			connection: Connection{
+				Scheme:  "http",
 				User:    UserCredential{User: "", Password: nil},
 				Address: NetAddress{Host: ""},
 			},
@@ -18,6 +19,7 @@ func TestConnection_StringURL(t *testing.T) {
 		},
 		{
 			connection: Connection{
+				Scheme:  "http",
 				User:    UserCredential{User: "", Password: nil},
 				Address: NetAddress{Host: "something.com"},
 			},
@@ -25,6 +27,7 @@ func TestConnection_StringURL(t *testing.T) {
 		},
 		{
 			connection: Connection{
+				Scheme:  "http",
 				User:    UserCredential{User: "", Password: nil},
 				Address: NetAddress{Host: "something.com", Port: 80},
 			},
@@ -32,6 +35,7 @@ func TestConnection_StringURL(t *testing.T) {
 		},
 		{
 			connection: Connection{
+				Scheme:  "http",
 				User:    UserCredential{User: "john", Password: nil},
 				Address: NetAddress{Host: "something.com", Port: 80},
 			},
@@ -39,6 +43,7 @@ func TestConnection_StringURL(t *testing.T) {
 		},
 		{
 			connection: Connection{
+				Scheme:  "http",
 				User:    NewUserCredential("john", ""),
 				Address: NetAddress{Host: "something.com", Port: 80},
 			},
@@ -46,6 +51,7 @@ func TestConnection_StringURL(t *testing.T) {
 		},
 		{
 			connection: Connection{
+				Scheme:  "http",
 				User:    NewUserCredential("john", "qwerty"),
 				Address: NetAddress{Host: "something.com", Port: 80},
 			},
@@ -53,6 +59,7 @@ func TestConnection_StringURL(t *testing.T) {
 		},
 		{
 			connection: Connection{
+				Scheme:  "http",
 				User:    NewUserCredential("", "qwerty"),
 				Address: NetAddress{Host: "something.com", Port: 80},
 			},
@@ -64,7 +71,7 @@ func TestConnection_StringURL(t *testing.T) {
 			if got := tt.connection.String(); got != tt.want {
 				t.Errorf("Connection.String() = %v, want %v", got, tt.want)
 			}
-			if got, want := tt.connection.URL("http"), "http://"+tt.want+"/"; got != want {
+			if got, want := tt.connection.URL(), "http://"+tt.want+"/"; got != want {
 				t.Errorf("Connection.String() = %v, want %v", got, want)
 			}
 		})

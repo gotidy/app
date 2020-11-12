@@ -15,7 +15,7 @@ func JSON(r io.Reader) (kong.Resolver, error) {
 		return nil, err
 	}
 	var f kong.ResolverFunc = func(context *kong.Context, parent *kong.Path, flag *kong.Flag) (interface{}, error) {
-		name := strings.Replace(flag.Name, "-", "_", -1)
+		name := strings.ReplaceAll(flag.Name, "-", "_")
 		var raw interface{} = values
 		for _, part := range strings.Split(name, ".") {
 			if values, ok := raw.(map[string]interface{}); ok {

@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"unicode"
 
 	"github.com/alecthomas/kong"
 
@@ -108,6 +109,42 @@ func Paths(paths ...string) Option {
 	return func() kong.Option { return kong.Configuration(JSON, paths...) }
 }
 
+func Env(prefix string) Option {
+	var f kong.ResolverFunc = func(context *kong.Context, parent *kong.Path, flag *kong.Flag) (interface{}, error) {
+		switch env := flag.Env; {
+		case flag.Name == "help":
+			return nil, nil
+		case env == "-":
+			flag.Env = ""
+			return nil, nil
+		case env != "":
+			return nil, nil
+		}
+		replacer := strings.NewReplacer("-", "_", ".", "_")
+		name := replacer.Replace(flag.Name)
+		// Split by upper chars "SomeOne" -> ["Some", "One"]
+		var names []string
+		if prefix != "" {
+			names = []string{prefix}
+		}
+		for {
+			i := strings.IndexFunc(name, unicode.IsUpper)
+			if i < 0 {
+				names = append(names, strings.Trim(name, "_"))
+				break
+			}
+			names = append(names, strings.Trim(name[:i], "_"))
+			name = name[i:]
+		}
+		name = strings.ToUpper(strings.Join(names, "_"))
+		flag.Env = name
+		flag.Value.Tag.Env = name
+		return nil, nil
+	}
+
+	return func() kong.Option { return kong.Resolvers(f) }
+}
+
 func Run(cli interface{}, ctx *context.Context, options ...Option) {
 	root, err := CombineStructs(Cli{}, cli)
 	if err != nil {
@@ -119,6 +156,7 @@ func Run(cli interface{}, ctx *context.Context, options ...Option) {
 		kongOptions = append(kongOptions, option())
 	}
 
+	kongOptions = append(kongOptions, kong.Bind(ctx), kong.Resolvers())
 	kongCtx := kong.Parse(root, kongOptions...)
 	if err = CopyStruct(root, cli); err != nil {
 		ctx.Logger.ApplicationStartFailed(err)
