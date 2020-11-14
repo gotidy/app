@@ -1,16 +1,18 @@
 package main
 
 import (
-	"github.com/gotidy/app/internal/cli"
-	"github.com/gotidy/app/internal/context"
+	"github.com/gotidy/app/pkg/cli"
+	"github.com/gotidy/app/pkg/context"
 )
 
 func main() {
 	cli.Run(
 		NewCli(),
-		context.NewContext(),
+		context.New().WithFields(func(f context.Fields) context.Fields {
+			return f.Str("Version", Version)
+		}),
 		cli.Name(ApplicationName),
-		cli.Version(Version),
+		cli.Version(ApplicationName+" "+Version),
 		cli.Env("APP"),
 	)
 }

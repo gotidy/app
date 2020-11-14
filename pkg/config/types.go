@@ -12,6 +12,7 @@ type NetAddress struct {
 	Port int
 }
 
+// Network returns "".
 func (a NetAddress) Network() string {
 	return ""
 }
@@ -27,11 +28,13 @@ func (a NetAddress) String() string {
 	return s
 }
 
+// UserCredential consists of a user and a password.
 type UserCredential struct {
 	User     string
 	Password *string
 }
 
+// NewUserCredential creates a user credentia.
 func NewUserCredential(user string, password string) UserCredential {
 	return UserCredential{
 		User:     user,

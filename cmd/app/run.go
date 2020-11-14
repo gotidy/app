@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/gotidy/app/internal/app"
-	"github.com/gotidy/app/internal/config"
-	"github.com/gotidy/app/internal/context"
+	"github.com/gotidy/app/pkg/config"
+	"github.com/gotidy/app/pkg/context"
 )
 
 type DB struct {

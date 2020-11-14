@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/gotidy/app/internal/config"
-	"github.com/gotidy/app/internal/context"
+	"github.com/gotidy/app/pkg/config"
+	"github.com/gotidy/app/pkg/context"
 )
 
 type Config struct {
@@ -19,6 +19,8 @@ type Config struct {
 
 func Run(ctx *context.Context, conf *Config) error {
 	// defer ctx.WaitGroup.Done()
+
+	ctx.Logger.Info().Msg("Application succeful started")
 
 	// Some code
 
