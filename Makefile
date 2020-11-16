@@ -11,3 +11,23 @@ gen:
 
 test:
 	go test ./...	
+
+up:
+	docker-compose up -d somecontainer
+
+	docker-compose up --build app	
+
+up-devbox:
+	docker-compose up -d somecontainer
+
+up-app:
+	docker-compose up --build app
+
+down:
+	docker-compose down -v --remove-orphans
+
+run:
+	source .env && go run ./cmd/app/*
+
+help:
+	go run ./cmd/app/* run --help
