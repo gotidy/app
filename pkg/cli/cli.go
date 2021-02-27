@@ -7,13 +7,12 @@ import (
 	"unicode"
 
 	"github.com/alecthomas/kong"
-
-	"github.com/gotidy/app/pkg/context"
+	"github.com/gotidy/app/pkg/scope"
 )
 
 type LoggingFormat string
 
-func (l LoggingFormat) AfterApply(ctx *context.Context, writer *ConsoleWriter) error {
+func (l LoggingFormat) AfterApply(scope *scope.Scope, writer *ConsoleWriter) error {
 	format := ColoredTextFormat
 	switch strings.ToLower(string(l)) {
 	case "coloredtext":
@@ -23,13 +22,13 @@ func (l LoggingFormat) AfterApply(ctx *context.Context, writer *ConsoleWriter) e
 	case "json":
 		format = JSONFormat
 	}
-	*ctx = ctx.WithLogger(ctx.Logger.Output(writer.Format(format)))
+	*scope = scope.WithLogger(scope.Logger.Output(writer.Format(format)))
 	return nil
 }
 
 type LoggingLevel string
 
-func (l LoggingLevel) BeforeApply(ctx *context.Context) error {
+func (l LoggingLevel) BeforeApply(scope *scope.Scope) error {
 	level := InfoLevel
 	switch l {
 	case "debug":
@@ -47,13 +46,13 @@ func (l LoggingLevel) BeforeApply(ctx *context.Context) error {
 	case "trace":
 		level = TraceLevel
 	}
-	*ctx = ctx.WithLogger(ctx.Logger.Level(level))
+	*scope = scope.WithLogger(scope.Logger.Level(level))
 	return nil
 }
 
 type LoggingOutput string
 
-func (l LoggingOutput) AfterApply(ctx *context.Context, writer *ConsoleWriter) (err error) {
+func (l LoggingOutput) AfterApply(scope *scope.Scope, writer *ConsoleWriter) (err error) {
 	// out := string(ctx.FlagValue(trace.Flag).(LoggingOutput))
 	out := string(l)
 	var w io.Writer
@@ -67,7 +66,7 @@ func (l LoggingOutput) AfterApply(ctx *context.Context, writer *ConsoleWriter) (
 			return err
 		}
 	}
-	*ctx = ctx.WithLogger(ctx.Logger.Output(writer.Out(w)))
+	*scope = scope.WithLogger(scope.Logger.Output(writer.Out(w)))
 	return nil
 }
 
@@ -104,15 +103,15 @@ func Paths(paths ...string) Option {
 // For example:
 //   --some.value -> PREFIX_SOME_VALUE
 func Env(prefix string) Option {
-	var f kong.ResolverFunc = func(context *kong.Context, parent *kong.Path, flag *kong.Flag) (interface{}, error) {
+	processFlag := func(flag *kong.Flag) {
 		switch env := flag.Env; {
 		case flag.Name == "help":
-			return nil, nil
+			return
 		case env == "-":
 			flag.Env = ""
-			return nil, nil
+			return
 		case env != "":
-			return nil, nil
+			return
 		}
 		replacer := strings.NewReplacer("-", "_", ".", "_")
 		name := replacer.Replace(flag.Name)
@@ -133,17 +132,31 @@ func Env(prefix string) Option {
 		name = strings.ToUpper(strings.Join(names, "_"))
 		flag.Env = name
 		flag.Value.Tag.Env = name
-		return nil, nil
 	}
 
-	return func() kong.Option { return kong.Resolvers(f) }
+	var processNode func(node *kong.Node)
+	processNode = func(node *kong.Node) {
+		for _, flag := range node.Flags {
+			processFlag(flag)
+		}
+		for _, node := range node.Children {
+			processNode(node)
+		}
+	}
+
+	return func() kong.Option {
+		return kong.PostBuild(func(k *kong.Kong) error {
+			processNode(k.Model.Node)
+			return nil
+		})
+	}
 }
 
 // Run executes the Run() method on the selected command, which must exist.
-func Run(cli interface{}, ctx context.Context, options ...Option) {
+func Run(cli interface{}, scope scope.Scope, options ...Option) {
 	root, err := CombineStructs(Cli{}, cli)
 	if err != nil {
-		ApplicationStartFailed(ctx.Logger, err)
+		ApplicationStartFailed(scope.Logger, err)
 	}
 
 	kongOptions := make([]kong.Option, 0, len(options))
@@ -151,16 +164,16 @@ func Run(cli interface{}, ctx context.Context, options ...Option) {
 		kongOptions = append(kongOptions, option())
 	}
 
-	kongOptions = append(kongOptions, kong.Bind(&ctx), kong.Bind(NewConsoleWriter()), kong.Resolvers())
+	kongOptions = append(kongOptions, kong.Bind(&scope), kong.Bind(NewConsoleWriter()), kong.Resolvers())
 	kongCtx := kong.Parse(root, kongOptions...)
 	if err = CopyStruct(root, cli); err != nil {
-		ApplicationStartFailed(ctx.Logger, err)
+		ApplicationStartFailed(scope.Logger, err)
 	}
-	err = kongCtx.Run(ctx)
+	err = kongCtx.Run(scope)
 	if err != nil {
-		ApplicationStartFailed(ctx.Logger, err)
+		ApplicationStartFailed(scope.Logger, err)
 	}
 
-	ctx.WaitGroup.Wait()
-	ApplicationSuccefulStopped(ctx.Logger)
+	scope.WaitGroup.Wait()
+	ApplicationSuccessfulStopped(scope.Logger)
 }

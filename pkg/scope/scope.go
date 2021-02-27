@@ -1,4 +1,4 @@
-package context
+package scope
 
 import (
 	"context"
@@ -13,8 +13,8 @@ import (
 // Fields is alias to zerolog.Context.
 type Fields = zerolog.Context
 
-// Context of execution. It consists of logger and cancelation context.
-type Context struct {
+// Scope of execution. It consists of logger and cancelation context.
+type Scope struct {
 	// WaitGroup is used to wait for asynchronous workers to complete.
 	WaitGroup *sync.WaitGroup
 	// Ctx will be canceled when SIGINT or SIGTERM are notified.
@@ -24,9 +24,9 @@ type Context struct {
 	Logger zerolog.Logger
 }
 
-// New create new Context.
-func New() Context {
-	return Context{
+// New create new Scope.
+func New() Scope {
+	return Scope{
 		Logger:    zerolog.New(os.Stderr).With().Timestamp().Logger(),
 		Ctx:       signal.ContextWithSignal(context.Background()),
 		WaitGroup: &sync.WaitGroup{},
@@ -34,23 +34,28 @@ func New() Context {
 }
 
 // WithFields sets Logger and returns a copy of the context.
-func (c Context) WithLogger(l zerolog.Logger) Context {
+func (c Scope) WithLogger(l zerolog.Logger) Scope {
 	c.Logger = l
 	return c
 }
 
 // WithFields sets Logger fields and returns a copy of the context.
 //
-//   ctx := context.New().WithFields(func(f context.Fields) context.Fields){
+//   ctx := scope.New().WithFields(func(f scope.Fields) scope.Fields){
 //       return f.Str("Version", "v1.2.3")
 //   })
-func (c Context) WithFields(f func(f Fields) Fields) Context {
+func (c Scope) WithFields(f func(f Fields) Fields) Scope {
 	c.Logger = f(c.Logger.With()).Logger()
 	return c
 }
 
+func (c Scope) WithRole(name string) Scope {
+	c.Logger = c.Logger.With().Str("role", name).Logger()
+	return c
+}
+
 // WithContext sets Context and returns self copy.
-func (c Context) WithContext(ctx context.Context) Context {
+func (c Scope) WithContext(ctx context.Context) Scope {
 	c.Ctx = ctx
 	return c
 }

@@ -1,4 +1,9 @@
 .vscode
+.idea
+.tmp
+
+bin/
+dist/
 
 # Binaries for programs and plugins
 *.exe
@@ -16,4 +21,4 @@
 __debug__
 
 # Dependency directories (remove the comment below to include it)
-# vendor/
+vendor/

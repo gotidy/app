@@ -4,8 +4,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-func ApplicationSuccefulStopped(l zerolog.Logger) {
-	l.Info().Msg("Application succeful stopped")
+func ApplicationSuccessfulStopped(l zerolog.Logger) {
+	l.Info().Msg("Application successful stopped")
 }
 
 func ApplicationStartFailed(l zerolog.Logger, err error) {

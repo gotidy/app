@@ -1,28 +1,22 @@
 package app
 
 import (
+	"net/url"
+
+	"github.com/gotidy/app/internal/server"
 	"github.com/gotidy/app/pkg/config"
-	"github.com/gotidy/app/pkg/context"
+	"github.com/gotidy/app/pkg/scope"
 )
 
 type Config struct {
-	DB config.Connection
+	DB  config.Connection
+	URL *url.URL
 }
 
-// type App struct {
-// 	config *Config
-// }
+func Run(scope scope.Scope, conf *Config) error {
+	server.Serve(scope.WithRole("http-server"), conf.URL)
 
-// func NewApp(conf *Config) *App {
-// 	return &App{config: conf}
-// }
-
-func Run(ctx *context.Context, conf *Config) error {
-	// defer ctx.WaitGroup.Done()
-
-	ctx.Logger.Info().Msg("Application succeful started")
-
-	// Some code
+	scope.Logger.Info().Msg("Application successfully started")
 
 	return nil
 }
